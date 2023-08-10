@@ -10,8 +10,7 @@ SRCB = $(addprefix $(SRCBDIR)/,)
 OBJB = $(patsubst $(SRCBDIR)/%.c, $(OBJBDIR)/%.o, $(SRCB))
 CC = cc
 RM = rm -rf
-CFLAGS = -Wall -Wextra -Werror -g 
-#-fsanitize=address
+CFLAGS = -Wall -Wextra -Werror -g -fsanitize=address
 HEADER = $(SRCDIR)/philo.h
 HEADERB = $(SRCBDIR)/philo_bonus.h
 

@@ -6,7 +6,7 @@
 /*   By: apanikov <apanikov@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/08 17:36:57 by apanikov          #+#    #+#             */
-/*   Updated: 2023/08/09 19:53:14 by apanikov         ###   ########.fr       */
+/*   Updated: 2023/08/10 20:23:23 by apanikov         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -68,6 +68,7 @@ void	initialize_data(t_data *ph, int ac, char **av)
 		ph->limit_of_eat = 0;
 	ph->must_die = 0;
 	ph->s_time = get_time(ph);
+	pthread_mutex_init(&(ph->m_printf), 0);
 }
 
 void	initialize_philos(t_data *ph)
@@ -83,6 +84,7 @@ void	initialize_philos(t_data *ph)
 		ph->phils[i].is_dead = 0;
 		pthread_mutex_init(&(ph->phils[i].left_fork), 0);
 		pthread_mutex_init(&(ph->phils[i].right_fork), 0);
+		ph->phils[i].data = ph;
 		i++;
 	}
 }
@@ -98,14 +100,37 @@ int	initialization(t_data *ph, int ac, char **av)
 	return (0);
 }
 
+void	*phil_life(void *p)
+{
+	t_phil	*phil;
+
+	phil = (t_phil *) p;
+	while (1)
+	{
+		pthread_mutex_lock(&phil->data->m_printf);
+		printf("%lld %d is thinking\n", get_curr_time(phil->data), phil->num + 1);
+		pthread_mutex_unlock(&phil->data->m_printf);
+	}
+	return	NULL;
+}
+
+
 void	start_philo(t_data *ph)
 {
 	int	i;
 
 	i = 0;
+	printf("CHECK\n");
 	while (i < ph->num_of_philo)
 	{
-		pthread_create(&ph->phils[i].thread, 0, phil_life, &ph->phils[i]);
+		pthread_create(&ph->phils[i].thread, 0, &phil_life, &ph->phils[i]);
+		printf("tread %d created\n", i);
+		i++;
+	}
+	i = 0;
+	while (i < ph->num_of_philo)
+	{
+		pthread_join(ph->phils[i].thread, 0);
 		i++;
 	}
 }
