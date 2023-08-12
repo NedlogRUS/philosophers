@@ -6,7 +6,7 @@
 /*   By: apanikov <apanikov@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/08 17:36:57 by apanikov          #+#    #+#             */
-/*   Updated: 2023/08/12 20:07:47 by apanikov         ###   ########.fr       */
+/*   Updated: 2023/08/13 01:48:56 by apanikov         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -72,7 +72,8 @@ void	initialize_forks(t_data *ph)
 void	initialize_data(t_data *ph, int ac, char **av)
 {
 	ph->num_of_philo = ph_atoi(av[1]);
-	ph->time_to_die = ph_atoi(av[2]) * 1000;
+	// ph->time_to_die = ph_atoi(av[2]) * 1000;
+	ph->time_to_die = ph_atoi(av[2]);
 	ph->time_to_eat = ph_atoi(av[3]) * 1000;
 	ph->time_to_sleep = ph_atoi(av[4]) * 1000;
 	if(ac == 6)
@@ -111,6 +112,7 @@ void	initialize_philos(t_data *ph)
 		// pthread_mutex_init(&(ph->phils[i].right_fork), 0);
 		ph->phils[i].data = ph;
 		hand_out_forks(ph, &ph->phils[i]);
+		pthread_mutex_init(&(ph->phils[i].m_last_eat), 0);
 		i++;
 	}
 }
@@ -138,14 +140,18 @@ void	phil_sleep(t_phil	*phil)
 void	phil_eat(t_phil	*phil)
 {
 	pthread_mutex_lock(phil->left_fork);
-	// printf("Time: %lldms Philo: %d has taken a left fork\n", get_curr_time(phil->data), phil->num + 1);
+	// Здесь нужно проверять не сдох ли он или другой, анлочить мьютекс и выходить
 	pthread_mutex_lock(phil->right_fork);
-	// printf("Time: %lldms Philo: %d has taken a right fork\n", get_curr_time(phil->data), phil->num + 1);
+	// Здесь нужно проверять не сдох ли он или другой, анлочить оба мьютекса и выходить
 	pthread_mutex_lock(&phil->data->m_printf);
 	printf("Time: %lldms Philo: %d has taken a forks\n", get_curr_time(phil->data), phil->num + 1);
 	printf("Time: %lldms Philo: %d is eating\n", get_curr_time(phil->data), phil->num + 1);
 	pthread_mutex_unlock(&phil->data->m_printf);
 	usleep(phil->data->time_to_eat);
+	pthread_mutex_lock(&phil->m_last_eat);
+	phil->last_eat = get_curr_time(phil->data);
+	// printf("Time: %lldms Philo: %d LAST_EAT: %lld\n", get_curr_time(phil->data), phil->num + 1, phil->last_eat);
+	pthread_mutex_unlock(&phil->m_last_eat);
 	pthread_mutex_unlock(phil->left_fork);
 	pthread_mutex_unlock(phil->right_fork);
 }
@@ -166,25 +172,62 @@ void	*phil_life(void *p)
 	return	NULL;
 }
 
+void	*die_checker(void *p)
+{
+	t_data	*ph;
+	int	i;
+
+
+	ph = (t_data *) p;
+	// printf("CHECK time_to_die %lld\n", ph->time_to_die);
+	while (1)
+	{
+		i = 0;
+		while (ph->num_of_philo > i)
+		{
+			// printf("CHECK %lld\n", ph->phils[i].last_eat);
+			pthread_mutex_lock(&ph->phils[i].m_last_eat);
+			if (ph->time_to_die < (get_curr_time(ph) - ph->phils[i].last_eat))
+			{
+				pthread_mutex_lock(&ph->m_printf);
+				printf("Time: %lldms Philo:%d is die\n", get_curr_time(ph), ph->phils[i].num + 1);
+				pthread_mutex_unlock(&ph->m_printf);
+				pthread_mutex_lock(&ph->m_must_die);
+				ph->must_die = 1;
+				pthread_mutex_unlock(&ph->m_must_die);
+				pthread_mutex_unlock(&ph->phils[i].m_last_eat);
+				// return NULL;
+			}
+			else
+			{
+				pthread_mutex_unlock(&ph->phils[i].m_last_eat);
+			}
+			i++;
+		}
+	}
+	return	NULL;
+}
 
 void	start_philo(t_data *ph)
 {
 	int	i;
 
 	i = 0;
-	printf("CHECK\n");
+	// printf("CHECK\n");
 	while (i < ph->num_of_philo)
 	{
 		pthread_create(&ph->phils[i].thread, 0, &phil_life, &ph->phils[i]);
 		// printf("tread %d created\n", i);
 		i++;
 	}
+	pthread_create(&ph->die_check, 0, &die_checker, ph);
 	i = 0;
 	while (i < ph->num_of_philo)
 	{
 		pthread_join(ph->phils[i].thread, 0);
 		i++;
 	}
+	pthread_join(ph->die_check, 0);
 }
 
 int	main(int ac, char **av)
