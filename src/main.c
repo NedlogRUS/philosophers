@@ -6,33 +6,33 @@
 /*   By: apanikov <apanikov@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/08 17:36:57 by apanikov          #+#    #+#             */
-/*   Updated: 2023/08/14 16:07:18 by apanikov         ###   ########.fr       */
+/*   Updated: 2023/08/14 20:47:51 by apanikov         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
 
-void	check_print(t_data *ph)
-{
-	printf("Number of Philosophers: %d\n", ph->num_of_philo);
-	printf("Time to Die: %lld\n", ph->time_to_die);
-	printf("Time to Eat: %lld\n", ph->time_to_eat);
-	printf("Time to Sleep: %lld\n", ph->time_to_sleep);
-	printf("Limit of Eat: %d\n", ph->limit_of_eat);
-	printf("Start Time: %lld\n", ph->s_time);
-	printf("\n");
-}
+// void	check_print(t_data *ph)
+// {
+// 	printf("Number of Philosophers: %d\n", ph->num_of_philo);
+// 	printf("Time to Die: %lld\n", ph->time_to_die);
+// 	printf("Time to Eat: %lld\n", ph->time_to_eat);
+// 	printf("Time to Sleep: %lld\n", ph->time_to_sleep);
+// 	printf("Limit of Eat: %d\n", ph->limit_of_eat);
+// 	printf("Start Time: %lld\n", ph->s_time);
+// 	printf("\n");
+// }
 
-void	check_print_philo(t_data *ph)
-{
-	int i = 0;
-	while (i < ph->num_of_philo)
-	{
-	printf("Philosophers number: %d\n", ph->phils[i].num);
-	printf("Last eat: %lld\n", ph->phils[i].last_eat);
-	i++;
-	}
-}
+// void	check_print_philo(t_data *ph)
+// {
+// 	int i = 0;
+// 	while (i < ph->num_of_philo)
+// 	{
+// 	printf("Philosophers number: %d\n", ph->phils[i].num);
+// 	printf("Last eat: %lld\n", ph->phils[i].last_eat);
+// 	i++;
+// 	}
+// }
 
 
 long long	get_time(t_data *ph)
@@ -54,6 +54,26 @@ long long	get_curr_time(t_data *ph)
 	gettimeofday(&time, NULL);
 	out = (time.tv_sec * 1000 + time.tv_usec / 1000) - ph->s_time; 
 	return (out);
+}
+
+// void	ph_usleep(int ms, t_data *ph)
+// {
+// 	long long	start;
+
+// 	start = get_time(ph);
+// 	while ((get_time(ph) - start) < ms / 1000)
+// 		usleep(ms / 1000 / 10);
+// 	return;
+// }
+
+void	ph_usleep(int ms, t_data *ph)
+{
+	long long	start;
+
+	start = get_time(ph);
+	while ((get_time(ph) - start) < ms)
+		usleep(ms / 10);
+	return;
 }
 
 void	initialize_forks(t_data *ph)
@@ -98,6 +118,20 @@ void	hand_out_forks(t_data *ph, t_phil *phils)
 		phils->right_fork = &ph->m_forks[phils->num];
 }
 
+// void	hand_out_forks(t_data *ph, t_phil *phils) // ver 2.0
+// {
+// 	if (phils->num == 0)
+// 		phils->left_fork = &ph->m_forks[phils->num + 1];
+// 	else
+// 		phils->left_fork = &ph->m_forks[phils->num];
+// 	if (phils->num == 0)
+// 		phils->right_fork = &ph->m_forks[phils->num];
+// 	else if (phils->num == ph->num_of_philo - 1)
+// 		phils->right_fork = &ph->m_forks[0];
+// 	else
+// 		phils->right_fork = &ph->m_forks[phils->num - 1];
+// }
+
 void	initialize_philos(t_data *ph)
 {
 	int		i;
@@ -112,8 +146,10 @@ void	initialize_philos(t_data *ph)
 		// pthread_mutex_init(&(ph->phils[i].left_fork), 0);
 		// pthread_mutex_init(&(ph->phils[i].right_fork), 0);
 		ph->phils[i].data = ph;
+		ph->phils[i].eat_counter = 0;
 		hand_out_forks(ph, &ph->phils[i]);
 		pthread_mutex_init(&(ph->phils[i].m_last_eat), 0);
+		pthread_mutex_init(&(ph->phils[i].m_eat_counter), 0);
 		i++;
 	}
 }
@@ -135,7 +171,8 @@ void	phil_sleep(t_phil	*phil)
 	pthread_mutex_lock(&phil->data->m_printf);
 	printf("Time: %lldms Philo: %d is sleeping\n", get_curr_time(phil->data), phil->num + 1);
 	pthread_mutex_unlock(&phil->data->m_printf);
-	usleep(phil->data->time_to_sleep);
+	// usleep(phil->data->time_to_sleep);
+	ph_usleep(phil->data->time_to_sleep / 1000, phil->data);
 }
 
 int	check_die(t_phil *phil)
@@ -185,13 +222,20 @@ int	phil_eat(t_phil	*phil)
 	printf("Time: %lldms Philo: %d has taken a forks\n", get_curr_time(phil->data), phil->num + 1);
 	printf("Time: %lldms Philo: %d is eating\n", get_curr_time(phil->data), phil->num + 1);
 	pthread_mutex_unlock(&phil->data->m_printf);
-	usleep(phil->data->time_to_eat);
+	ph_usleep(phil->data->time_to_eat / 1000, phil->data);
+	// usleep(phil->data->time_to_eat);
 	pthread_mutex_lock(&phil->m_last_eat);
 	phil->last_eat = get_curr_time(phil->data);
 	// printf("Time: %lldms Philo: %d LAST_EAT: %lld\n", get_curr_time(phil->data), phil->num + 1, phil->last_eat);
 	pthread_mutex_unlock(&phil->m_last_eat);
 	pthread_mutex_unlock(phil->left_fork);
 	pthread_mutex_unlock(phil->right_fork);
+	if(phil->data->limit_of_eat > 0)
+	{
+		pthread_mutex_lock(&phil->m_eat_counter);
+		phil->eat_counter++;
+		pthread_mutex_unlock(&phil->m_eat_counter);
+	}
 	return (1);
 }
 
@@ -200,6 +244,11 @@ void	*phil_life(void *p)
 	t_phil	*phil;
 
 	phil = (t_phil *) p;
+	pthread_mutex_lock(&phil->m_last_eat);
+	phil->last_eat = get_curr_time(phil->data);
+	pthread_mutex_unlock(&phil->m_last_eat);
+	// if (phil->num % 2 != 0)
+	// 	usleep(2500);
 	while (1)
 	{
 		if(!phil_eat(phil))
@@ -210,7 +259,7 @@ void	*phil_life(void *p)
 		if (!check_die(phil))
 			return NULL;
 		pthread_mutex_lock(&phil->data->m_printf);
-		printf("Time: %lldms Philo:%d is thinking\n", get_curr_time(phil->data), phil->num + 1);
+		printf("Time: %lldms Philo: %d is thinking\n", get_curr_time(phil->data), phil->num + 1);
 		pthread_mutex_unlock(&phil->data->m_printf);
 		if (!check_die(phil))
 			return NULL;
@@ -225,18 +274,23 @@ void	*die_checker(void *p)
 
 
 	ph = (t_data *) p;
-	// printf("CHECK time_to_die %lld\n", ph->time_to_die);
 	while (1)
 	{
 		i = 0;
-		while (ph->num_of_philo > i)
+		while (i < ph->num_of_philo)
 		{
-			// printf("CHECK %lld\n", ph->phils[i].last_eat);
+			pthread_mutex_lock(&ph->m_must_die);
+			if (ph->must_die == 1)
+			{
+				pthread_mutex_unlock(&ph->m_must_die);
+				return NULL;
+			}
+			pthread_mutex_unlock(&ph->m_must_die);
 			pthread_mutex_lock(&ph->phils[i].m_last_eat);
 			if (ph->time_to_die < (get_curr_time(ph) - ph->phils[i].last_eat))
 			{
 				pthread_mutex_lock(&ph->m_printf);
-				printf("Time: %lldms Philo:%d is die\n", get_curr_time(ph), ph->phils[i].num + 1);
+				printf("Time: %lldms Philo: %d is die\n", get_curr_time(ph), ph->phils[i].num + 1);
 				pthread_mutex_unlock(&ph->m_printf);
 				pthread_mutex_lock(&ph->m_must_die);
 				ph->must_die = 1;
@@ -249,6 +303,43 @@ void	*die_checker(void *p)
 				pthread_mutex_unlock(&ph->phils[i].m_last_eat);
 			}
 			i++;
+		}
+	}
+	return	NULL;
+}
+
+void	*eat_checker(void *p)
+{
+	t_data	*ph;
+	int	i;
+
+	ph = (t_data *) p;
+	// printf("CHECK limit_of_eat :%d\n", ph->limit_of_eat);
+	// printf("CHECK ph->num_of_philo :%d\n", ph->num_of_philo);
+	i = 0;
+	while (1)
+	{
+		while (i <= ph->num_of_philo)
+		{
+			// printf("CHECK i :%d\n", i);
+			pthread_mutex_lock(&ph->phils[i].m_eat_counter);
+			if (ph->phils[i].eat_counter < ph->limit_of_eat)
+			{
+				pthread_mutex_unlock(&ph->phils[i].m_eat_counter);
+				break;
+			}
+			if (i == ph->num_of_philo - 1)
+			{
+				pthread_mutex_lock(&ph->m_must_die);
+				ph->must_die = 1;
+				printf("CHECK\n");
+				pthread_mutex_unlock(&ph->m_must_die);
+				pthread_mutex_unlock(&ph->phils[i].m_eat_counter);
+				return NULL;
+			}
+			else if (ph->phils[i].eat_counter >= ph->limit_of_eat)
+				i++;
+			pthread_mutex_unlock(&ph->phils[i].m_eat_counter);
 		}
 	}
 	return	NULL;
@@ -267,6 +358,12 @@ void	start_philo(t_data *ph)
 		i++;
 	}
 	pthread_create(&ph->die_check, 0, &die_checker, ph);
+	if(ph->limit_of_eat > 0)
+	{	
+		// printf("CHECK\n");
+		pthread_create(&ph->eat_check, 0, &eat_checker, ph);
+		pthread_join(ph->eat_check, 0);
+	}
 	i = 0;
 	while (i < ph->num_of_philo)
 	{

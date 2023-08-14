@@ -6,7 +6,7 @@
 /*   By: apanikov <apanikov@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/08 17:37:28 by apanikov          #+#    #+#             */
-/*   Updated: 2023/08/14 15:42:32 by apanikov         ###   ########.fr       */
+/*   Updated: 2023/08/14 17:55:49 by apanikov         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,6 +30,7 @@ typedef struct s_data
 	int					limit_of_eat;
 	long long			s_time;
 	int					must_die;
+	pthread_t			eat_check;
 	pthread_t			die_check;
 	pthread_mutex_t		m_printf;
 	pthread_mutex_t		m_must_die;
@@ -42,6 +43,8 @@ typedef struct s_phil
 	int				num;
 	pthread_t		thread;
 	long long		last_eat;
+	int				eat_counter;
+	pthread_mutex_t	m_eat_counter;
 	pthread_mutex_t	*left_fork;
 	pthread_mutex_t	*right_fork;
 	pthread_mutex_t	m_last_eat;
