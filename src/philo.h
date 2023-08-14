@@ -6,7 +6,7 @@
 /*   By: apanikov <apanikov@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/08 17:37:28 by apanikov          #+#    #+#             */
-/*   Updated: 2023/08/13 00:47:00 by apanikov         ###   ########.fr       */
+/*   Updated: 2023/08/14 15:42:32 by apanikov         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,9 +42,6 @@ typedef struct s_phil
 	int				num;
 	pthread_t		thread;
 	long long		last_eat;
-	int				is_dead;
-	int				finished_eating;
-	int				flag_finished;
 	pthread_mutex_t	*left_fork;
 	pthread_mutex_t	*right_fork;
 	pthread_mutex_t	m_last_eat;

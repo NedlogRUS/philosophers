@@ -6,7 +6,7 @@
 /*   By: apanikov <apanikov@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/08 17:36:57 by apanikov          #+#    #+#             */
-/*   Updated: 2023/08/13 01:48:56 by apanikov         ###   ########.fr       */
+/*   Updated: 2023/08/14 16:07:18 by apanikov         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -83,6 +83,7 @@ void	initialize_data(t_data *ph, int ac, char **av)
 	ph->must_die = 0;
 	ph->s_time = get_time(ph);
 	pthread_mutex_init(&(ph->m_printf), 0);
+	pthread_mutex_init(&(ph->m_must_die), 0);
 }
 
 void	hand_out_forks(t_data *ph, t_phil *phils)
@@ -107,7 +108,7 @@ void	initialize_philos(t_data *ph)
 	{
 		ph->phils[i].num = i;
 		ph->phils[i].last_eat = get_curr_time(ph);
-		ph->phils[i].is_dead = 0;
+		// ph->phils[i].is_dead = 0;
 		// pthread_mutex_init(&(ph->phils[i].left_fork), 0);
 		// pthread_mutex_init(&(ph->phils[i].right_fork), 0);
 		ph->phils[i].data = ph;
@@ -137,12 +138,49 @@ void	phil_sleep(t_phil	*phil)
 	usleep(phil->data->time_to_sleep);
 }
 
-void	phil_eat(t_phil	*phil)
+int	check_die(t_phil *phil)
 {
+	pthread_mutex_lock(&phil->data->m_must_die);
+	if (phil->data->must_die == 1)
+	{
+		pthread_mutex_unlock(&phil->data->m_must_die);
+		return (0);
+	}
+	pthread_mutex_unlock(&phil->data->m_must_die);
+	return (1);
+}
+
+void	unlock_m_forks(t_phil *phil, int i)
+{
+	if (i == 1)
+	{
+		pthread_mutex_unlock(phil->left_fork);
+		return ;
+	}
+	if (i == 2)
+	{
+		pthread_mutex_unlock(phil->left_fork);
+		pthread_mutex_unlock(phil->right_fork);
+		return ;
+	}	
+}
+
+void chosen_one(t_phil	*phil)
+{
+	usleep(phil->data->time_to_eat);
+	return ;
+}
+
+int	phil_eat(t_phil	*phil)
+{
+	if(phil->data->num_of_philo == 1)
+		return (chosen_one(phil), 0);
 	pthread_mutex_lock(phil->left_fork);
-	// Здесь нужно проверять не сдох ли он или другой, анлочить мьютекс и выходить
+	if (!check_die(phil))
+		return (unlock_m_forks(phil, 1), 0);
 	pthread_mutex_lock(phil->right_fork);
-	// Здесь нужно проверять не сдох ли он или другой, анлочить оба мьютекса и выходить
+	if (!check_die(phil))
+		return (unlock_m_forks(phil, 2), 0);
 	pthread_mutex_lock(&phil->data->m_printf);
 	printf("Time: %lldms Philo: %d has taken a forks\n", get_curr_time(phil->data), phil->num + 1);
 	printf("Time: %lldms Philo: %d is eating\n", get_curr_time(phil->data), phil->num + 1);
@@ -154,6 +192,7 @@ void	phil_eat(t_phil	*phil)
 	pthread_mutex_unlock(&phil->m_last_eat);
 	pthread_mutex_unlock(phil->left_fork);
 	pthread_mutex_unlock(phil->right_fork);
+	return (1);
 }
 
 void	*phil_life(void *p)
@@ -163,11 +202,18 @@ void	*phil_life(void *p)
 	phil = (t_phil *) p;
 	while (1)
 	{
-		phil_eat(phil);
+		if(!phil_eat(phil))
+			return NULL;
+		if (!check_die(phil))
+			return NULL;
 		phil_sleep(phil);
+		if (!check_die(phil))
+			return NULL;
 		pthread_mutex_lock(&phil->data->m_printf);
 		printf("Time: %lldms Philo:%d is thinking\n", get_curr_time(phil->data), phil->num + 1);
 		pthread_mutex_unlock(&phil->data->m_printf);
+		if (!check_die(phil))
+			return NULL;
 	}
 	return	NULL;
 }
@@ -196,7 +242,7 @@ void	*die_checker(void *p)
 				ph->must_die = 1;
 				pthread_mutex_unlock(&ph->m_must_die);
 				pthread_mutex_unlock(&ph->phils[i].m_last_eat);
-				// return NULL;
+				return NULL;
 			}
 			else
 			{
@@ -238,6 +284,10 @@ int	main(int ac, char **av)
 	if (!initialization(ph, ac, av))
 		start_philo(ph);
 	else
-		printf("error\n");
-	free(ph);
+	{
+		write(2,"error\n", 6);
+		return (1);
+	}
+	// free(ph);
+	return (0);
 } 
