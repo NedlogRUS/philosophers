@@ -4,15 +4,16 @@ SRCDIR = src
 OBJDIR = obj
 SRCBDIR = srcb
 OBJBDIR = objb
-SRCS = $(addprefix $(SRCDIR)/, main.c check_arg.c)
+SRCS = $(addprefix $(SRCDIR)/, main.c check_arg.c time_utils.c initializer.c philo.c \
+	philo_utils.c eat_sleep_think_repeat.c eat_die_checkers.c)
 OBJS = $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(SRCS))
 SRCB = $(addprefix $(SRCBDIR)/,)
 OBJB = $(patsubst $(SRCBDIR)/%.c, $(OBJBDIR)/%.o, $(SRCB))
 CC = cc
 RM = rm -rf
-CFLAGS = -Wall -Wextra -Werror -g
+CFLAGS = -Wall -Wextra -Werror -g 
 # -fsanitize=thread
-#-fsanitize=address
+# -fsanitize=address
 HEADER = $(SRCDIR)/philo.h
 HEADERB = $(SRCBDIR)/philo_bonus.h
 

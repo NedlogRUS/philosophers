@@ -6,7 +6,7 @@
 /*   By: apanikov <apanikov@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/08 17:37:28 by apanikov          #+#    #+#             */
-/*   Updated: 2023/08/14 17:55:49 by apanikov         ###   ########.fr       */
+/*   Updated: 2023/08/15 19:34:04 by apanikov         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,7 +51,19 @@ typedef struct s_phil
 	struct s_data	*data;
 }					t_phil;
 
-int	check_args(int ac, char **av);
-int	ph_atoi(const char *str);
+int			check_args(int ac, char **av);
+int			ph_atoi(const char *str);
+long long	get_time(t_data *ph);
+long long	get_curr_time(t_data *ph);
+void		ph_usleep(int ms, t_data *ph);
+int			initialization(t_data *ph, int ac, char **av);
+void		start_philo(t_data *ph);
+void		chosen_one(t_phil	*phil);
+void		*eat_checker(void *p);
+void		*die_checker(void *p);
+int			phil_eat(t_phil	*phil);
+void		phil_sleep(t_phil	*phil);
+int			check_die(t_phil *phil);
+void		unlock_m_forks(t_phil *phil, int i);
 
 #endif
