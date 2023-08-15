@@ -6,7 +6,7 @@
 /*   By: apanikov <apanikov@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/08 17:36:57 by apanikov          #+#    #+#             */
-/*   Updated: 2023/08/15 14:39:06 by apanikov         ###   ########.fr       */
+/*   Updated: 2023/08/15 17:07:51 by apanikov         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,16 +56,6 @@ long long	get_curr_time(t_data *ph)
 	return (out);
 }
 
-// void	ph_usleep(int ms, t_data *ph)
-// {
-// 	long long	start;
-
-// 	start = get_time(ph);
-// 	while ((get_time(ph) - start) < ms / 1000)
-// 		usleep(ms / 1000 / 10);
-// 	return;
-// }
-
 void	ph_usleep(int ms, t_data *ph)
 {
 	long long	start;
@@ -82,7 +72,7 @@ void	initialize_forks(t_data *ph)
 
 	i = 0;
 	ph->m_forks = malloc(sizeof(pthread_mutex_t	) * ph->num_of_philo);
-	while(i < ph->num_of_philo)
+	while(i <= ph->num_of_philo - 1)
 	{
 		pthread_mutex_init(&(ph->m_forks[i]), 0);
 		i++;
@@ -92,7 +82,6 @@ void	initialize_forks(t_data *ph)
 void	initialize_data(t_data *ph, int ac, char **av)
 {
 	ph->num_of_philo = ph_atoi(av[1]);
-	// ph->time_to_die = ph_atoi(av[2]) * 1000;
 	ph->time_to_die = ph_atoi(av[2]);
 	ph->time_to_eat = ph_atoi(av[3]) * 1000;
 	ph->time_to_sleep = ph_atoi(av[4]) * 1000;
@@ -138,13 +127,10 @@ void	initialize_philos(t_data *ph)
 
 	ph->phils= malloc(sizeof(t_phil) * ph->num_of_philo);
 	i = 0;
-	while(i < ph->num_of_philo)
+	while(i <= ph->num_of_philo - 1)
 	{
 		ph->phils[i].num = i;
 		ph->phils[i].last_eat = get_curr_time(ph);
-		// ph->phils[i].is_dead = 0;
-		// pthread_mutex_init(&(ph->phils[i].left_fork), 0);
-		// pthread_mutex_init(&(ph->phils[i].right_fork), 0);
 		ph->phils[i].data = ph;
 		ph->phils[i].eat_counter = 0;
 		hand_out_forks(ph, &ph->phils[i]);
@@ -171,7 +157,6 @@ void	phil_sleep(t_phil	*phil)
 	pthread_mutex_lock(&phil->data->m_printf);
 	printf("Time: %lldms Philo: %d is sleeping\n", get_curr_time(phil->data), phil->num + 1);
 	pthread_mutex_unlock(&phil->data->m_printf);
-	// usleep(phil->data->time_to_sleep);
 	ph_usleep(phil->data->time_to_sleep / 1000, phil->data);
 }
 
@@ -223,20 +208,21 @@ int	phil_eat(t_phil	*phil)
 	printf("Time: %lldms Philo: %d is eating\n", get_curr_time(phil->data), phil->num + 1);
 	pthread_mutex_unlock(&phil->data->m_printf);
 	ph_usleep(phil->data->time_to_eat / 1000, phil->data);
-	// usleep(phil->data->time_to_eat);
 	pthread_mutex_lock(&phil->m_last_eat);
 	phil->last_eat = get_curr_time(phil->data);
-	// printf("Time: %lldms Philo: %d LAST_EAT: %lld\n", get_curr_time(phil->data), phil->num + 1, phil->last_eat);
 	pthread_mutex_unlock(&phil->m_last_eat);
 	pthread_mutex_unlock(phil->left_fork);
 	pthread_mutex_unlock(phil->right_fork);
-	if(phil->data->limit_of_eat > 0)
-	{
-		pthread_mutex_lock(&phil->m_eat_counter);
-		phil->eat_counter++;
-		printf("Phil: %d eat counter: %d\n", phil->num, phil->eat_counter);
-		pthread_mutex_unlock(&phil->m_eat_counter);
-	}
+	// if(phil->data->limit_of_eat > 0)
+	// {
+	// 	pthread_mutex_lock(&phil->m_eat_counter);
+	// 	phil->eat_counter++;
+	// 	printf("Phil: %d eat counter: %d\n", phil->num, phil->eat_counter);
+	// 	pthread_mutex_unlock(&phil->m_eat_counter);
+	// }
+	pthread_mutex_lock(&phil->m_eat_counter);
+	phil->eat_counter++;
+	pthread_mutex_unlock(&phil->m_eat_counter);
 	return (1);
 }
 
@@ -278,7 +264,7 @@ void	*die_checker(void *p)
 	while (1)
 	{
 		i = 0;
-		while (i < ph->num_of_philo)
+		while (i <= ph->num_of_philo - 1)
 		{
 			pthread_mutex_lock(&ph->m_must_die);
 			if (ph->must_die == 1)
@@ -315,14 +301,11 @@ void	*eat_checker(void *p)
 	int	i;
 
 	ph = (t_data *) p;
-	// printf("CHECK limit_of_eat :%d\n", ph->limit_of_eat);
-	// printf("CHECK ph->num_of_philo :%d\n", ph->num_of_philo);
 	i = 0;
 	while (1)
 	{
-		while (i <= ph->num_of_philo)
+		while (i <= ph->num_of_philo - 1)
 		{
-			// printf("CHECK i :%d\n", i);
 			pthread_mutex_lock(&ph->phils[i].m_eat_counter);
 			if (ph->phils[i].eat_counter < ph->limit_of_eat)
 			{
@@ -334,17 +317,17 @@ void	*eat_checker(void *p)
 			{
 				pthread_mutex_lock(&ph->m_must_die);
 				ph->must_die = 1;
-				printf("CHECK\n");
 				pthread_mutex_unlock(&ph->m_must_die);
-				// pthread_mutex_unlock(&ph->phils[i].m_eat_counter);
 				return NULL;
-				// exit (0);
 			}
 			pthread_mutex_lock(&ph->phils[i].m_eat_counter);
 			if (ph->phils[i].eat_counter >= ph->limit_of_eat)
-			// else if (ph->phils[i].eat_counter >= ph->limit_of_eat)
+			{
 				i++;
-			pthread_mutex_unlock(&ph->phils[i].m_eat_counter);
+				pthread_mutex_unlock(&ph->phils[i - 1].m_eat_counter);
+			}
+			else
+				pthread_mutex_unlock(&ph->phils[i].m_eat_counter);
 		}
 	}
 	return	NULL;
@@ -355,27 +338,23 @@ void	start_philo(t_data *ph)
 	int	i;
 
 	i = 0;
-	// printf("CHECK\n");
-	while (i < ph->num_of_philo)
+	while (i <= ph->num_of_philo - 1)
 	{
 		pthread_create(&ph->phils[i].thread, 0, &phil_life, &ph->phils[i]);
-		// printf("tread %d created\n", i);
 		i++;
 	}
 	pthread_create(&ph->die_check, 0, &die_checker, ph);
 	if(ph->limit_of_eat > 0)
-	{	
-		// printf("CHECK\n");
 		pthread_create(&ph->eat_check, 0, &eat_checker, ph);
-		pthread_join(ph->eat_check, 0);
-	}
 	i = 0;
-	while (i < ph->num_of_philo)
+	while (i <= ph->num_of_philo - 1)
 	{
 		pthread_join(ph->phils[i].thread, 0);
 		i++;
 	}
 	pthread_join(ph->die_check, 0);
+	if(ph->limit_of_eat > 0)
+		pthread_join(ph->eat_check, 0);
 }
 
 int	main(int ac, char **av)
@@ -390,6 +369,5 @@ int	main(int ac, char **av)
 		write(2,"error\n", 6);
 		return (1);
 	}
-	// free(ph);
 	return (0);
 } 
