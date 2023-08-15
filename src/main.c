@@ -6,7 +6,7 @@
 /*   By: apanikov <apanikov@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/08 17:36:57 by apanikov          #+#    #+#             */
-/*   Updated: 2023/08/14 20:47:51 by apanikov         ###   ########.fr       */
+/*   Updated: 2023/08/15 14:39:06 by apanikov         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -234,6 +234,7 @@ int	phil_eat(t_phil	*phil)
 	{
 		pthread_mutex_lock(&phil->m_eat_counter);
 		phil->eat_counter++;
+		printf("Phil: %d eat counter: %d\n", phil->num, phil->eat_counter);
 		pthread_mutex_unlock(&phil->m_eat_counter);
 	}
 	return (1);
@@ -328,16 +329,20 @@ void	*eat_checker(void *p)
 				pthread_mutex_unlock(&ph->phils[i].m_eat_counter);
 				break;
 			}
+			pthread_mutex_unlock(&ph->phils[i].m_eat_counter);
 			if (i == ph->num_of_philo - 1)
 			{
 				pthread_mutex_lock(&ph->m_must_die);
 				ph->must_die = 1;
 				printf("CHECK\n");
 				pthread_mutex_unlock(&ph->m_must_die);
-				pthread_mutex_unlock(&ph->phils[i].m_eat_counter);
+				// pthread_mutex_unlock(&ph->phils[i].m_eat_counter);
 				return NULL;
+				// exit (0);
 			}
-			else if (ph->phils[i].eat_counter >= ph->limit_of_eat)
+			pthread_mutex_lock(&ph->phils[i].m_eat_counter);
+			if (ph->phils[i].eat_counter >= ph->limit_of_eat)
+			// else if (ph->phils[i].eat_counter >= ph->limit_of_eat)
 				i++;
 			pthread_mutex_unlock(&ph->phils[i].m_eat_counter);
 		}
